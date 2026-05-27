@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Twin – 3D Room</title>
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Import map: Three.js from CDN (no build step required) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.168.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.168.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Sidebar KPI Dashboard ── -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-icon">◈</span>
+          <span class="brand-name">Digital Twin</span>
+        </div>
+        <span id="room-name" class="room-name">–</span>
+      </div>
+
+      <div id="kpi-list"></div>
+
+      <div class="sidebar-footer">
+        <button id="btn-refresh">↻&nbsp; Aggiorna</button>
+        <button id="btn-toggle-labels">◉&nbsp; Labels</button>
+      </div>
+    </aside>
+
+    <!-- ── 3D Viewport ── -->
+    <main id="viewport">
+      <canvas id="canvas"></canvas>
+
+      <!-- Loading overlay -->
+      <div id="loading-overlay">
+        <div class="loader-content">
+          <div class="spinner"></div>
+          <p id="loading-text">Caricamento stanza 3D…</p>
+        </div>
+      </div>
+
+      <!-- KPI detail panel (shown on click) -->
+      <div id="detail-panel" class="hidden">
+        <button id="detail-close" class="close-btn" title="Chiudi">✕</button>
+        <div id="detail-content"></div>
+      </div>
+
+      <!-- Controls hint -->
+      <div id="controls-hint">
+        Trascina per ruotare &nbsp;·&nbsp; Scroll per zoom &nbsp;·&nbsp; Click destro per traslare
+      </div>
+    </main>
+
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Digital Twin – Dev Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.py",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Digital Twin – Dev Server (porta 8080)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.py",
+      "args": ["8080"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Digital Twin – Dev Server + Watch",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.py",
+      "args": ["--watch"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}

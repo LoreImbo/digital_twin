@@ -1,0 +1,72 @@
+{
+  "room": "Ufficio Piano 2",
+  "lastUpdated": "2026-05-27T10:00:00Z",
+  "kpis": [
+    {
+      "id": "temperature",
+      "label": "Temperatura",
+      "value": 22.5,
+      "unit": "°C",
+      "type": "sensor",
+      "status": "ok",
+      "thresholds": { "min": 18, "max": 26 },
+      "position3d": { "x": 0, "y": 2.5, "z": 0 },
+      "history": [21.0, 21.5, 22.0, 22.5, 23.0, 22.8, 22.5]
+    },
+    {
+      "id": "humidity",
+      "label": "Umidità",
+      "value": 55,
+      "unit": "%",
+      "type": "sensor",
+      "status": "ok",
+      "thresholds": { "min": 40, "max": 70 },
+      "position3d": { "x": 2.5, "y": 1.8, "z": 1.5 },
+      "history": [50, 52, 54, 55, 56, 55, 55]
+    },
+    {
+      "id": "occupancy",
+      "label": "Occupazione",
+      "value": 8,
+      "unit": "persone",
+      "type": "counter",
+      "status": "ok",
+      "thresholds": { "max": 20 },
+      "position3d": { "x": -2.0, "y": 2.2, "z": -1.5 },
+      "history": [5, 6, 8, 10, 8, 7, 8]
+    },
+    {
+      "id": "energy",
+      "label": "Consumo Energetico",
+      "value": 3.8,
+      "unit": "kWh",
+      "type": "sensor",
+      "status": "warning",
+      "thresholds": { "max": 4.0 },
+      "position3d": { "x": 2.0, "y": 1.2, "z": -2.5 },
+      "history": [2.5, 2.8, 3.0, 3.2, 3.5, 3.8, 3.8]
+    },
+    {
+      "id": "co2",
+      "label": "CO₂",
+      "value": 420,
+      "unit": "ppm",
+      "type": "sensor",
+      "status": "ok",
+      "thresholds": { "min": 300, "max": 800 },
+      "position3d": { "x": -2.5, "y": 2.0, "z": 1.5 },
+      "history": [380, 390, 400, 415, 420, 418, 420]
+    },
+    {
+      "id": "noise",
+      "label": "Rumore",
+      "value": 42,
+      "unit": "dB",
+      "type": "sensor",
+      "status": "ok",
+      "thresholds": { "max": 65 },
+      "position3d": { "x": -1.0, "y": 1.5, "z": -3.0 },
+      "history": [35, 38, 42, 45, 43, 41, 42]
+    }
+  ]
+}
