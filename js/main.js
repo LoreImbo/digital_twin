@@ -261,6 +261,21 @@ async function init() {
     kpiMgr.buildUI(dataMgr.getKPIs());
   }
 
+  // Registra listener per aggiornamenti SSE / refresh manuale
+  dataMgr.onUpdate((data) => {
+    if (data?.kpis) kpiMgr.updateKPIs(data.kpis);
+  });
+
+  // Avvia Server-Sent Events se il Python server è disponibile
+  dataMgr.startSSE();
+
+  // Indica in console se i dati arrivano da Azure o dal file statico
+  console.info(
+    dataMgr.isLive()
+      ? '[DigitalTwin] Modalità LIVE – aggiornamenti real-time via SSE.'
+      : '[DigitalTwin] Modalità STATICA – avvia server.py per dati real-time.',
+  );
+
   // Fade out loading overlay
   const overlay = document.getElementById('loading-overlay');
   overlay.style.transition = 'opacity .5s';

@@ -1,63 +1,103 @@
 /**
  * data.js – KPI Data Manager
  *
- * Loads kpi-data.json and exposes reactive helpers.
- * To plug in a real backend, replace DATA_URL with your API endpoint.
+ * Strategia di caricamento (priorità):
+ *   1. GET /api/kpis          – Python server con Azure connector (real-time)
+ *   2. ./assets/data/kpi-data.json – file statico (GitHub Pages / offline)
+ *
+ * Aggiornamenti in tempo reale:
+ *   - Quando /api/kpis risponde, attiva automaticamente Server-Sent Events
+ *     su /api/events → i KPI si aggiornano senza ricaricare la pagina.
  */
 
-const DATA_URL = './assets/data/kpi-data.json';
+const API_URL    = '/api/kpis';
+const STATIC_URL = './assets/data/kpi-data.json';
+const SSE_URL    = '/api/events';
 
 export class DataManager {
   constructor() {
-    this._data     = null;
+    this._data      = null;
     this._listeners = [];
+    this._sse       = null;   // EventSource attivo
+    this._useApi    = false;  // true quando il Python server è disponibile
   }
 
-  /**
-   * Fetch and store KPI data. Returns the parsed object.
-   * @throws on network / parse errors
-   */
+  // ── Caricamento iniziale ───────────────────────────────────────────────────
+
   async load() {
-    const res = await fetch(DATA_URL);
-    if (!res.ok) throw new Error(`[DataManager] HTTP ${res.status} fetching ${DATA_URL}`);
-    this._data = await res.json();
+    // Prova l'endpoint Python; se non risponde usa il JSON statico
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this._data   = await res.json();
+      this._useApi = true;
+    } catch {
+      const res = await fetch(STATIC_URL);
+      if (!res.ok) throw new Error(`[DataManager] HTTP ${res.status} – ${STATIC_URL}`);
+      this._data   = await res.json();
+      this._useApi = false;
+    }
     return this._data;
   }
 
-  /**
-   * Re-fetch and notify all registered listeners.
-   */
+  // ── Polling manuale (pulsante "Aggiorna") ──────────────────────────────────
+
   async refresh() {
     await this.load();
-    this._listeners.forEach((fn) => fn(this._data));
+    this._notify();
     return this._data;
   }
 
-  /**
-   * Register a callback to be called after each refresh().
-   * @param {(data: object) => void} fn
-   */
+  // ── Server-Sent Events (aggiornamenti real-time da Azure) ─────────────────
+
+  /** Avvia la ricezione SSE. Chiamato da main.js dopo load(). */
+  startSSE() {
+    if (!this._useApi || !window.EventSource || this._sse) return;
+
+    this._sse = new EventSource(SSE_URL);
+
+    this._sse.onopen = () => {
+      console.info('[DataManager] SSE connesso – aggiornamenti real-time attivi.');
+    };
+
+    this._sse.onmessage = (e) => {
+      try {
+        const kpis = JSON.parse(e.data);
+        if (this._data) this._data.kpis = kpis;
+        this._notify();
+      } catch (err) {
+        console.warn('[DataManager] SSE parse error:', err);
+      }
+    };
+
+    this._sse.onerror = () => {
+      // Il browser riprova automaticamente; nessuna azione necessaria
+    };
+  }
+
+  /** Chiude la connessione SSE (opzionale – chiamato in cleanup). */
+  stopSSE() {
+    this._sse?.close();
+    this._sse = null;
+  }
+
+  // ── Listener ──────────────────────────────────────────────────────────────
+
   onUpdate(fn) {
     this._listeners.push(fn);
   }
 
-  /** Returns the full list of KPI objects. */
-  getKPIs() {
-    return this._data?.kpis ?? [];
-  }
+  // ── Getter ────────────────────────────────────────────────────────────────
 
-  /** Returns a single KPI by id, or undefined. */
-  getKPI(id) {
-    return this._data?.kpis?.find((k) => k.id === id);
-  }
+  getKPIs()        { return this._data?.kpis         ?? []; }
+  getKPI(id)       { return this._data?.kpis?.find((k) => k.id === id); }
+  getRoomName()    { return this._data?.room          ?? 'Room'; }
+  getLastUpdated() { return this._data?.lastUpdated   ?? null; }
+  isLive()         { return this._useApi; }   // true = connesso al Python server
 
-  /** Returns the room display name. */
-  getRoomName() {
-    return this._data?.room ?? 'Room';
-  }
+  // ── Privato ───────────────────────────────────────────────────────────────
 
-  /** Returns the ISO timestamp of the last data update (if present). */
-  getLastUpdated() {
-    return this._data?.lastUpdated ?? null;
+  _notify() {
+    this._listeners.forEach((fn) => fn(this._data));
   }
 }

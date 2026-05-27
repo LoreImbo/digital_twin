@@ -20,8 +20,19 @@ import threading
 import time
 import hashlib
 import json
+import queue
 from datetime import datetime
 from pathlib import Path
+
+# ── Azure connector (opzionale – graceful fallback se non configurato) ─────────
+try:
+    from azure_connector import AzureConnector
+    connector = AzureConnector()
+except ImportError:
+    connector = None
+
+# Lista delle code SSE attive (una per ogni client connesso a /api/events)
+_sse_clients: list[queue.Queue] = []
 
 # ── Configurazione ────────────────────────────────────────────────────────────
 
@@ -56,7 +67,75 @@ def _enable_windows_ansi():
 
 # ── Handler HTTP ──────────────────────────────────────────────────────────────
 
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """Server multi-thread: necessario per tenere aperte le connessioni SSE."""
+    allow_reuse_address = True
+    daemon_threads      = True
+
+
 class DigitalTwinHandler(http.server.SimpleHTTPRequestHandler):
+
+    # ── Routing ──────────────────────────────────────────────────────────────
+
+    def do_GET(self):
+        if self.path == '/api/kpis':
+            self._handle_kpis()
+        elif self.path == '/api/events':
+            self._handle_sse()
+        else:
+            super().do_GET()
+
+    # ── /api/kpis  → snapshot JSON attuale ───────────────────────────────────
+
+    def _handle_kpis(self):
+        kpis = connector.get_kpis() if connector else []
+        body = json.dumps({
+            'room':        connector.get_room_name() if connector else 'Room',
+            'lastUpdated': datetime.utcnow().isoformat() + 'Z',
+            'kpis':        kpis,
+        }).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    # ── /api/events → Server-Sent Events (stream real-time) ──────────────────
+
+    def _handle_sse(self):
+        self.send_response(200)
+        self.send_header('Content-Type',  'text/event-stream')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Connection',    'keep-alive')
+        self.end_headers()
+
+        q = queue.Queue(maxsize=20)
+        _sse_clients.append(q)
+
+        # Invia subito lo stato corrente al client appena connesso
+        if connector:
+            self._sse_write(q, json.dumps(connector.get_kpis()))
+
+        try:
+            while True:
+                try:
+                    data = q.get(timeout=25)          # attendi aggiornamento
+                    self.wfile.write(f'data: {data}\n\n'.encode())
+                    self.wfile.flush()
+                except queue.Empty:
+                    self.wfile.write(b': heartbeat\n\n')  # mantieni viva la conn.
+                    self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        finally:
+            _sse_clients.remove(q)
+
+    @staticmethod
+    def _sse_write(q: queue.Queue, data: str):
+        try:
+            q.put_nowait(data)
+        except queue.Full:
+            pass
 
     def log_message(self, fmt, *args):
         code   = str(args[1]) if len(args) > 1 else '-'
@@ -133,6 +212,17 @@ def watch_files(root: Path):
 
         prev = curr
 
+# ── SSE broadcast ───────────────────────────────────────────────────────────────
+
+def _broadcast_kpis(kpis: list):
+    """Invia i dati aggiornati a tutti i client SSE connessi."""
+    data = json.dumps(kpis)
+    for q in list(_sse_clients):
+        try:
+            q.put_nowait(data)
+        except queue.Full:
+            pass
+
 # ── Banner ────────────────────────────────────────────────────────────────────
 
 def print_banner(port: int, watch: bool):
@@ -175,10 +265,13 @@ def main():
     if watch:
         threading.Thread(target=watch_files, args=(root,), daemon=True).start()
 
-    # Avvia il server HTTP
-    socketserver.TCPServer.allow_reuse_address = True
+    # Avvia Azure connector in background
+    if connector:
+        connector.on_update(_broadcast_kpis)
+        connector.start()
+
     try:
-        with socketserver.TCPServer(('', port), DigitalTwinHandler) as httpd:
+        with ThreadedHTTPServer(('', port), DigitalTwinHandler) as httpd:
             httpd.serve_forever()
     except OSError as e:
         if 'address already in use' in str(e).lower() or e.errno in (98, 10048):

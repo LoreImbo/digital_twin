@@ -1,0 +1,4 @@
+azure-eventhub>=5.11.0
+azure-digitaltwins-core>=1.2.0
+azure-identity>=1.16.0
+python-dotenv>=1.0.0

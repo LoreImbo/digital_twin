@@ -354,6 +354,10 @@ paket-files/
 **/__pycache__/
 *.pyc
 
+# uv
+.venv/
+uv.lock
+
 # Cake - Uncomment if you are using it
 #tools/**
 #!tools/packages.config

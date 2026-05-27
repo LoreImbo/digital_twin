@@ -1,0 +1,19 @@
+{
+  "_comment": "Mappa le proprietà dei dispositivi IoT Hub ai KPI della dashboard.",
+  "_format":  "\"deviceId.propertyName\" oppure solo \"propertyName\" → \"kpiId\"",
+
+  "sensor-room1.temperature": "temperature",
+  "sensor-room1.humidity":    "humidity",
+  "sensor-room1.co2":         "co2",
+  "sensor-room1.noise":       "noise",
+
+  "energy-meter.power":       "energy",
+  "occupancy-sensor.count":   "occupancy",
+
+  "temperature": "temperature",
+  "humidity":    "humidity",
+  "co2":         "co2",
+  "noise":       "noise",
+  "energy":      "energy",
+  "occupancy":   "occupancy"
+}
