@@ -21,7 +21,7 @@ import time
 import hashlib
 import json
 import queue
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Azure connector (opzionale – graceful fallback se non configurato) ─────────
@@ -91,7 +91,7 @@ class DigitalTwinHandler(http.server.SimpleHTTPRequestHandler):
         kpis = connector.get_kpis() if connector else []
         body = json.dumps({
             'room':        connector.get_room_name() if connector else 'Room',
-            'lastUpdated': datetime.utcnow().isoformat() + 'Z',
+            'lastUpdated': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             'kpis':        kpis,
         }).encode()
         self.send_response(200)

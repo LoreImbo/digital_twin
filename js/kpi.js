@@ -17,10 +17,11 @@ export class KPIManager {
    * @param {THREE.Scene} scene
    */
   constructor(scene) {
-    this.scene       = scene;
-    this.markers     = []; // { kpi, mesh, css2dObj, labelDiv }
-    this.labelsVisible = true;
-    this._raycaster  = new THREE.Raycaster();
+    this.scene        = scene;
+    this.markers      = []; // { kpi, mesh, css2dObj, labelDiv }
+    this.labelsVisible  = true;
+    this._raycaster   = new THREE.Raycaster();
+    this._openKpiId   = null; // id del KPI attualmente aperto nel detail panel
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -43,6 +44,10 @@ export class KPIManager {
         m.mesh.material.emissive.setHex(c);
         m.labelDiv.querySelector('.kl-value').textContent = `${kpi.value} ${kpi.unit}`;
         m.labelDiv.setAttribute('data-status', kpi.status);
+      }
+      // Aggiorna il detail panel se è aperto su questo KPI
+      if (this._openKpiId === kpi.id) {
+        this._refreshDetail(kpi);
       }
     });
     this._buildSidebar(kpis);
@@ -176,6 +181,15 @@ export class KPIManager {
   }
 
   _showDetail(kpi) {
+    this._openKpiId = kpi.id;
+
+    // Chiudi → reset tracking
+    const closeBtn = document.getElementById('detail-close');
+    if (closeBtn && !closeBtn._dtBound) {
+      closeBtn._dtBound = true;
+      closeBtn.addEventListener('click', () => { this._openKpiId = null; });
+    }
+
     const panel   = document.getElementById('detail-panel');
     const content = document.getElementById('detail-content');
     const labels  = { ok: 'Normale', warning: 'Attenzione', error: 'Critico' };
@@ -207,6 +221,26 @@ export class KPIManager {
     document.dispatchEvent(
       new CustomEvent('kpi:focus', { detail: kpi.position3d ?? null }),
     );
+  }
+
+  /** Aggiorna solo valore, badge e grafico del panel aperto — senza riaprirlo. */
+  _refreshDetail(kpi) {
+    const content = document.getElementById('detail-content');
+    if (!content) return;
+
+    const valEl   = content.querySelector('.dt-value');
+    const badgeEl = content.querySelector('[class^="dt-badge"],.dt-badge');
+    const labels  = { ok: 'Normale', warning: 'Attenzione', error: 'Critico' };
+
+    if (valEl)   valEl.innerHTML = `${kpi.value}<span class="dt-unit"> ${kpi.unit}</span>`;
+    if (badgeEl) {
+      badgeEl.className = `dt-badge s-bg-${kpi.status}`;
+      badgeEl.textContent = labels[kpi.status] ?? kpi.status;
+    }
+
+    if (kpi.history?.length > 1) {
+      this._drawDetailChart('dt-chart', kpi.history, kpi.status);
+    }
   }
 
   _drawDetailChart(id, data, status) {

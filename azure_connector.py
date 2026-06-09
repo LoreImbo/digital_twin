@@ -37,7 +37,7 @@ except ImportError:
 
 try:
     from azure.digitaltwins.core import DigitalTwinsClient
-    from azure.identity import DefaultAzureCredential, ClientSecretCredential
+    from azure.identity import DefaultAzureCredential, ClientSecretCredential, AzureCliCredential
     _ADT_OK = True
 except ImportError:
     _ADT_OK = False
@@ -146,6 +146,7 @@ class AzureConnector:
                     client.receive(
                         on_event=self._on_iothub_event,
                         starting_position='-1',   # leggi solo eventi nuovi
+                        owner_level=1,            # epoch > 0, prende il controllo da altri receiver
                     )
             except Exception as exc:
                 print(f'  [IoT Hub] Connessione persa: {exc}  – riprovo in 10s')
@@ -255,7 +256,14 @@ class AzureConnector:
         tid = os.getenv('AZURE_TENANT_ID')
         if cid and cs and tid:
             return ClientSecretCredential(tid, cid, cs)
-        return DefaultAzureCredential()
+        # Prova prima az CLI (sviluppo locale), poi Managed Identity / env vars
+        try:
+            cred = AzureCliCredential()
+            # verifica che il token sia disponibile
+            cred.get_token('https://digitaltwins.azure.net/.default')
+            return cred
+        except Exception:
+            return DefaultAzureCredential()
 
     # ── Helper: calcola status da soglie ──────────────────────────────────────
 
