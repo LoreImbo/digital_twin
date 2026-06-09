@@ -14,7 +14,7 @@ import { CSS2DRenderer }  from 'three/addons/renderers/CSS2DRenderer.js';
 import { DataManager }    from './data.js';
 import { KPIManager }     from './kpi.js';
 
-const MODEL_PATH = './assets/models/room.glb';
+const MODEL_PATH = './assets/models/room1.glb';
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('canvas');
